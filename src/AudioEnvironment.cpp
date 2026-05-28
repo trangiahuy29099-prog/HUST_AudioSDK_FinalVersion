@@ -165,14 +165,26 @@ bool AudioEnvironment::ApplyPreset(ReverbPreset preset)
         break;
 
     case ReverbPreset::Cave:
-        alEffectf(effect, AL_REVERB_DENSITY, 1.00f);
-        alEffectf(effect, AL_REVERB_DIFFUSION, 0.85f);
-        alEffectf(effect, AL_REVERB_GAIN, 0.70f);
-        alEffectf(effect, AL_REVERB_GAINHF, 0.55f);
-        alEffectf(effect, AL_REVERB_DECAY_TIME, 4.50f);
-        alEffectf(effect, AL_REVERB_REFLECTIONS_GAIN, 0.75f);
-        alEffectf(effect, AL_REVERB_LATE_REVERB_GAIN, 1.25f);
+    {
+        alEffectf(effect, AL_REVERB_DENSITY, 0.65f);
+        alEffectf(effect, AL_REVERB_DIFFUSION, 0.55f);
+
+        alEffectf(effect, AL_REVERB_GAIN, 0.35f);
+        alEffectf(effect, AL_REVERB_GAINHF, 0.45f);
+
+        alEffectf(effect, AL_REVERB_DECAY_TIME, 1.35f);
+        alEffectf(effect, AL_REVERB_DECAY_HFRATIO, 0.45f);
+
+        alEffectf(effect, AL_REVERB_REFLECTIONS_GAIN, 0.18f);
+        alEffectf(effect, AL_REVERB_REFLECTIONS_DELAY, 0.025f);
+
+        alEffectf(effect, AL_REVERB_LATE_REVERB_GAIN, 0.28f);
+        alEffectf(effect, AL_REVERB_LATE_REVERB_DELAY, 0.055f);
+
+        alEffectf(effect, AL_REVERB_AIR_ABSORPTION_GAINHF, 0.92f);
+
         break;
+    }
 
     case ReverbPreset::ConcertHall:
         alEffectf(effect, AL_REVERB_DENSITY, 0.95f);
