@@ -2968,15 +2968,21 @@ MonoBehaviour:
   switchModeKey: 118
   followTarget: {fileID: 1534627464}
   lookTarget: {fileID: 1582670803}
-  followDistance: 8
-  followHeight: 3.2
-  lookHeight: 1.6
-  followSmooth: 8
-  rotationSmooth: 10
+  followDistance: 5.5
+  followHeight: 2.2
+  lookHeight: 1.55
+  followSmooth: 14
+  rotationSmooth: 18
   allowMouseOrbitInFollowMode: 1
+  holdRightMouseToOrbit: 0
+  lockCursorWhileOrbiting: 1
   orbitSensitivity: 3
-  minPitch: -20
+  minPitch: -25
   maxPitch: 65
+  keepCameraBehindTargetWhenNotOrbiting: 1
+  rotateTargetWithCameraYaw: 1
+  rotateTargetOnlyWhenNoMoveInput: 1
+  targetYawFollowSpeed: 18
   minFollowDistance: 3
   maxFollowDistance: 20
   followZoomSpeed: 4
@@ -12612,6 +12618,7 @@ MonoBehaviour:
   droneTrail: {fileID: 0}
   propellers: []
   propellerSpinSpeed: 1000
+  showDebugUI: 0
 --- !u!1 &1458075063
 GameObject:
   m_ObjectHideFlags: 0
@@ -12968,16 +12975,30 @@ MonoBehaviour:
   visualRoot: {fileID: 263708465}
   headOrientationRoot: {fileID: 1582670803}
   animator: {fileID: 1896478504}
-  walkSpeed: 5
-  runSpeed: 4.2
+  cameraTransform: {fileID: 330585546}
+  useThirdPerson360Movement: 1
+  autoFindMainCamera: 1
+  movementRelativeToCamera: 1
+  rotateBodyTowardMoveDirection: 1
+  forceForwardAnimationWhenBodyTurns: 1
+  bodyTurnSpeed: 14
+  walkSpeed: 7
+  runSpeed: 10
   headRotateSpeed: 120
   maxHeadYaw: 80
   clampHeadYaw: 1
+  syncHeadWithBodyWhenMoving: 1
+  headReturnToCenterSpeed: 240
   rotateHeadBoneVisual: 1
   headBone: {fileID: 630823416}
   headRotationAxis: 1
   invertHeadRotation: 0
   visualHeadYawMultiplier: 1
+  enableWASDInput: 1
+  wasdForwardKey: 119
+  wasdBackwardKey: 115
+  wasdLeftKey: 97
+  wasdRightKey: 100
   forwardKey: 273
   backwardKey: 274
   leftKey: 276
