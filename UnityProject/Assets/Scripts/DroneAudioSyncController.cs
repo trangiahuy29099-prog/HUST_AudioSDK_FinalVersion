@@ -66,6 +66,10 @@ public class DroneAudioSyncController : MonoBehaviour
     private Vector3 sourceVelocity;
     private Vector3 listenerVelocity;
 
+    [Header("Debug UI")]
+    // Quan trong
+    public bool showDebugUI = false;
+
     private GUIStyle labelStyle;
     private GUIStyle buttonStyle;
 
@@ -587,6 +591,11 @@ public class DroneAudioSyncController : MonoBehaviour
 
     private void OnGUI()
     {
+        if (!showDebugUI)
+        {
+            return;
+        }
+
         if (labelStyle == null || buttonStyle == null)
         {
             SetupGUIStyles();

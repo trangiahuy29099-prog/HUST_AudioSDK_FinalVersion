@@ -13,22 +13,41 @@ public class HybridGameCameraController : MonoBehaviour
     public KeyCode switchModeKey = KeyCode.V;
 
     [Header("Third Person Follow")]
-    public Transform followTarget;
-    public Transform lookTarget;
+    public Transform followTarget;      // PlayerListener
+    public Transform lookTarget;        // HeadOrientationPivot / AudioListenerPoint
 
-    public float followDistance = 8.0f;
-    public float followHeight = 3.2f;
-    public float lookHeight = 1.6f;
-    public float followSmooth = 8.0f;
-    public float rotationSmooth = 10.0f;
+    public float followDistance = 5.5f;
+    public float followHeight = 2.2f;
+    public float lookHeight = 1.55f;
+    public float followSmooth = 14.0f;
+    public float rotationSmooth = 18.0f;
 
     [Header("Third Person Mouse Orbit")]
     public bool allowMouseOrbitInFollowMode = true;
+
+    [Tooltip("Bat thi giu chuot phai moi xoay camera. Tat thi chi can di chuot la camera xoay.")]
+    public bool holdRightMouseToOrbit = true;
+
+    public bool lockCursorWhileOrbiting = true;
     public float orbitSensitivity = 3.0f;
-    public float minPitch = -20.0f;
+    public float minPitch = -25.0f;
     public float maxPitch = 65.0f;
-    public float minFollowDistance = 3.0f;
-    public float maxFollowDistance = 20.0f;
+
+    [Header("Camera Behind Player")]
+    [Tooltip("Bat cai nay de khi khong xoay chuot, camera tu dong nam sau lung nhan vat.")]
+    public bool keepCameraBehindTargetWhenNotOrbiting = true;
+
+    [Tooltip("Bat cai nay de khi dung yen va xoay chuot, than nhan vat cung xoay theo huong camera.")]
+    public bool rotateTargetWithCameraYaw = true;
+
+    [Tooltip("Nen bat. Khi dang bam W/A/S/D thi script nhan vat se tu xoay theo huong di chuyen.")]
+    public bool rotateTargetOnlyWhenNoMoveInput = true;
+
+    public float targetYawFollowSpeed = 18.0f;
+
+    [Header("Zoom")]
+    public float minFollowDistance = 2.5f;
+    public float maxFollowDistance = 14.0f;
     public float followZoomSpeed = 4.0f;
 
     [Header("Free Camera")]
@@ -54,6 +73,7 @@ public class HybridGameCameraController : MonoBehaviour
     private float pitch;
 
     private bool wasOrbitingLastFrame = false;
+    private bool cursorLockedByThisScript = false;
 
     private GUIStyle labelStyle;
     private GUIStyle buttonStyle;
@@ -64,8 +84,7 @@ public class HybridGameCameraController : MonoBehaviour
 
         if (followTarget != null)
         {
-            Vector3 euler = followTarget.eulerAngles;
-            yaw = euler.y;
+            yaw = followTarget.eulerAngles.y;
         }
 
         if (freeOrbitTarget != null)
@@ -80,7 +99,10 @@ public class HybridGameCameraController : MonoBehaviour
         {
             ToggleCameraMode();
         }
+    }
 
+    private void LateUpdate()
+    {
         if (currentMode == CameraMode.ThirdPersonFollow)
         {
             UpdateThirdPersonFollow();
@@ -96,6 +118,7 @@ public class HybridGameCameraController : MonoBehaviour
         if (currentMode == CameraMode.ThirdPersonFollow)
         {
             currentMode = CameraMode.FreeCamera;
+            UnlockCursorIfNeeded();
             SyncAnglesFromCurrentCamera();
         }
         else
@@ -116,9 +139,110 @@ public class HybridGameCameraController : MonoBehaviour
             return;
         }
 
-        HandleFollowMouseOrbit();
+        bool orbiting = IsFollowOrbitInputActive();
+
+        HandleFollowMouseOrbit(orbiting);
         HandleFollowZoom();
 
+        RotateTargetWithCameraYawIfNeeded(orbiting);
+
+        if (!orbiting && keepCameraBehindTargetWhenNotOrbiting)
+        {
+            yaw = Mathf.LerpAngle(
+                yaw,
+                followTarget.eulerAngles.y,
+                Time.deltaTime * 6.0f
+            );
+        }
+
+        ApplyThirdPersonCamera();
+    }
+
+    private bool IsFollowOrbitInputActive()
+    {
+        if (!allowMouseOrbitInFollowMode)
+        {
+            return false;
+        }
+
+        if (holdRightMouseToOrbit)
+        {
+            return Input.GetMouseButton(1);
+        }
+
+        return true;
+    }
+
+    private void HandleFollowMouseOrbit(bool orbiting)
+    {
+        if (!allowMouseOrbitInFollowMode)
+        {
+            UnlockCursorIfNeeded();
+            return;
+        }
+
+        if (!orbiting)
+        {
+            UnlockCursorIfNeeded();
+            return;
+        }
+
+        if (lockCursorWhileOrbiting)
+        {
+            LockCursor();
+        }
+
+        float mouseX = Input.GetAxis("Mouse X") * orbitSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * orbitSensitivity;
+
+        yaw += mouseX;
+        pitch -= mouseY;
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+    }
+
+    private void RotateTargetWithCameraYawIfNeeded(bool orbiting)
+    {
+        if (!rotateTargetWithCameraYaw)
+        {
+            return;
+        }
+
+        if (holdRightMouseToOrbit && !orbiting)
+        {
+            return;
+        }
+
+        if (rotateTargetOnlyWhenNoMoveInput && HasMoveInput())
+        {
+            return;
+        }
+
+        Quaternion targetRotation = Quaternion.Euler(0.0f, yaw, 0.0f);
+
+        float t = 1.0f - Mathf.Exp(-targetYawFollowSpeed * Time.deltaTime);
+
+        followTarget.rotation = Quaternion.Slerp(
+            followTarget.rotation,
+            targetRotation,
+            t
+        );
+    }
+
+    private bool HasMoveInput()
+    {
+        return
+            Input.GetKey(KeyCode.W) ||
+            Input.GetKey(KeyCode.A) ||
+            Input.GetKey(KeyCode.S) ||
+            Input.GetKey(KeyCode.D) ||
+            Input.GetKey(KeyCode.UpArrow) ||
+            Input.GetKey(KeyCode.DownArrow) ||
+            Input.GetKey(KeyCode.LeftArrow) ||
+            Input.GetKey(KeyCode.RightArrow);
+    }
+
+    private void ApplyThirdPersonCamera()
+    {
         Quaternion orbitRotation = Quaternion.Euler(pitch, yaw, 0.0f);
 
         Vector3 desiredOffset = orbitRotation * new Vector3(0.0f, 0.0f, -followDistance);
@@ -126,10 +250,12 @@ public class HybridGameCameraController : MonoBehaviour
 
         Vector3 desiredPosition = followTarget.position + desiredOffset;
 
+        float positionT = 1.0f - Mathf.Exp(-followSmooth * Time.deltaTime);
+
         transform.position = Vector3.Lerp(
             transform.position,
             desiredPosition,
-            followSmooth * Time.deltaTime
+            positionT
         );
 
         Vector3 lookPoint;
@@ -143,46 +269,25 @@ public class HybridGameCameraController : MonoBehaviour
             lookPoint = followTarget.position + Vector3.up * lookHeight;
         }
 
+        Vector3 lookDirection = lookPoint - transform.position;
+
+        if (lookDirection.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
         Quaternion desiredRotation = Quaternion.LookRotation(
-            lookPoint - transform.position,
+            lookDirection.normalized,
             Vector3.up
         );
+
+        float rotationT = 1.0f - Mathf.Exp(-rotationSmooth * Time.deltaTime);
 
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             desiredRotation,
-            rotationSmooth * Time.deltaTime
+            rotationT
         );
-    }
-
-    private void HandleFollowMouseOrbit()
-    {
-        if (!allowMouseOrbitInFollowMode)
-        {
-            if (followTarget != null)
-            {
-                yaw = Mathf.LerpAngle(yaw, followTarget.eulerAngles.y, Time.deltaTime * 5.0f);
-            }
-
-            return;
-        }
-
-        if (Input.GetMouseButton(1))
-        {
-            float mouseX = Input.GetAxis("Mouse X") * orbitSensitivity;
-            float mouseY = Input.GetAxis("Mouse Y") * orbitSensitivity;
-
-            yaw += mouseX;
-            pitch -= mouseY;
-            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
-        }
-        else
-        {
-            if (followTarget != null)
-            {
-                yaw = Mathf.LerpAngle(yaw, followTarget.eulerAngles.y, Time.deltaTime * 3.0f);
-            }
-        }
     }
 
     private void HandleFollowZoom()
@@ -213,6 +318,8 @@ public class HybridGameCameraController : MonoBehaviour
             return;
         }
 
+        LockCursor();
+
         float mouseX = Input.GetAxis("Mouse X") * freeLookSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * freeLookSensitivity;
 
@@ -227,6 +334,7 @@ public class HybridGameCameraController : MonoBehaviour
     {
         if (!Input.GetMouseButton(1))
         {
+            UnlockCursorIfNeeded();
             return;
         }
 
@@ -392,6 +500,30 @@ public class HybridGameCameraController : MonoBehaviour
         return angle;
     }
 
+    private void LockCursor()
+    {
+        if (!lockCursorWhileOrbiting)
+        {
+            return;
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        cursorLockedByThisScript = true;
+    }
+
+    private void UnlockCursorIfNeeded()
+    {
+        if (!cursorLockedByThisScript)
+        {
+            return;
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        cursorLockedByThisScript = false;
+    }
+
     private void SetupGUIStyles()
     {
         labelStyle = new GUIStyle(GUI.skin.label);
@@ -414,7 +546,7 @@ public class HybridGameCameraController : MonoBehaviour
             SetupGUIStyles();
         }
 
-        GUILayout.BeginArea(new Rect(Screen.width - 260, 20, 240, 110), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(Screen.width - 310, 20, 290, 125), GUI.skin.box);
 
         GUILayout.Label("Camera Mode: " + currentMode, labelStyle);
 
@@ -425,7 +557,16 @@ public class HybridGameCameraController : MonoBehaviour
 
         if (currentMode == CameraMode.ThirdPersonFollow)
         {
-            GUILayout.Label("Follow: Right Mouse = orbit, Wheel = zoom", labelStyle);
+            if (holdRightMouseToOrbit)
+            {
+                GUILayout.Label("Third Person: Hold RMB + Mouse", labelStyle);
+            }
+            else
+            {
+                GUILayout.Label("Third Person: Mouse Look Always", labelStyle);
+            }
+
+            GUILayout.Label("WASD = Move, Wheel = Zoom", labelStyle);
         }
         else
         {
@@ -433,5 +574,10 @@ public class HybridGameCameraController : MonoBehaviour
         }
 
         GUILayout.EndArea();
+    }
+
+    private void OnDisable()
+    {
+        UnlockCursorIfNeeded();
     }
 }
