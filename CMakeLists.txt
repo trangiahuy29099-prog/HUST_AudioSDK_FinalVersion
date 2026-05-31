@@ -1,21 +1,28 @@
-cmake_minimum_required(VERSION 3.10)
-project(HUST_AudioSDK)
+cmake_minimum_required(VERSION 3.16)
+
+project(HUSTAudioSDK LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(SOURCES 
-    src/main.cpp 
-    src/AudioEngine.cpp 
-    src/AudioSource.cpp 
+add_library(HUSTAudioSDK SHARED
+    src/AudioSDK_C_API.cpp
+    src/AudioEngine.cpp
+    src/AudioListener.cpp
+    src/AudioSource.cpp
+    src/AudioEnvironment.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-add_executable(${PROJECT_NAME} ${SOURCES})
+target_include_directories(HUSTAudioSDK PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
-# Tự động tìm và link OpenAL cùng 3 module của SFML (Graphics, Window, System)
-target_link_libraries(${PROJECT_NAME} 
-    openal 
-    sfml-graphics 
-    sfml-window 
-    sfml-system
+find_package(OpenAL REQUIRED)
+
+target_link_libraries(HUSTAudioSDK PRIVATE
+    OpenAL::OpenAL
+)
+
+set_target_properties(HUSTAudioSDK PROPERTIES
+    OUTPUT_NAME "HUSTAudioSDK"
 )
